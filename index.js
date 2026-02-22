@@ -1,56 +1,62 @@
 import express from "express";
-import fetch from "node-fetch";
 import cors from "cors";
+import OpenAI from "openai";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
+// Groq client
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
+});
 
 app.post("/chat", async (req, res) => {
   try {
-    const userMessage = req.body.message;
+    const { message } = req.body;
 
-    const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "llama3-8b-8192",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are Ravan, a highly intelligent human-like AI assistant created by Anand. Speak naturally and professionally."
-            },
-            {
-              role: "user",
-              content: userMessage
-            }
-          ]
-        })
-      }
-    );
-
-    const data = await response.json();
-
-    if (data.choices) {
-      res.json({ reply: data.choices[0].message.content });
-    } else {
-      res.status(500).json({ error: "Model error", details: data });
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
     }
 
+    const completion = await groq.chat.completions.create({
+      model: "llama3-8b-8192",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are Ravan AI, a smart human-like assistant owned by Anand. Speak naturally like a real intelligent human.",
+        },
+        {
+          role: "user",
+          content: message,
+        },
+      ],
+      temperature: 0.7,
+    });
+
+    res.json({
+      reply: completion.choices[0].message.content,
+    });
+
   } catch (error) {
-    res.status(500).json({ error: "Server error", details: error });
+    console.error("Groq Error:", error);
+    res.status(500).json({
+      error: "Model error",
+      details: error.response?.data || error.message,
+    });
   }
 });
 
+app.get("/", (req, res) => {
+  res.send("Ravan AI backend running.");
+});
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Ravan AI server running on port", PORT);
+  console.log("Server started on port " + PORT);
 });
