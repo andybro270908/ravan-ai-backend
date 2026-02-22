@@ -1,26 +1,26 @@
 import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Groq client
+// Initialize Groq (OpenAI-compatible)
 const groq = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
   baseURL: "https://api.groq.com/openai/v1",
 });
 
+// Chat Endpoint
 app.post("/chat", async (req, res) => {
   try {
-    const { message } = req.body;
+    const message = req.body.message;
 
-    if (!message) {
-      return res.status(400).json({ error: "Message is required" });
+    if (!message || typeof message !== "string") {
+      return res.status(400).json({
+        error: "Invalid message format"
+      });
     }
 
     const completion = await groq.chat.completions.create({
@@ -29,7 +29,7 @@ app.post("/chat", async (req, res) => {
         {
           role: "system",
           content:
-            "You are Ravan AI, a smart human-like assistant owned by Anand. Speak naturally like a real intelligent human.",
+            "You are Ravan AI, a human-like intelligent assistant owned by Anand. Speak naturally, clearly, and intelligently like a real human.",
         },
         {
           role: "user",
@@ -39,12 +39,13 @@ app.post("/chat", async (req, res) => {
       temperature: 0.7,
     });
 
-    res.json({
-      reply: completion.choices[0].message.content,
-    });
+    const reply = completion.choices[0].message.content;
+
+    res.json({ reply });
 
   } catch (error) {
     console.error("Groq Error:", error);
+
     res.status(500).json({
       error: "Model error",
       details: error.response?.data || error.message,
@@ -52,11 +53,13 @@ app.post("/chat", async (req, res) => {
   }
 });
 
+// Health check route
 app.get("/", (req, res) => {
-  res.send("Ravan AI backend running.");
+  res.send("Ravan AI backend is running.");
 });
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-  console.log("Server started on port " + PORT);
+  console.log(`Server running on port ${PORT}`);
 });
