@@ -35,7 +35,7 @@ app.post("/chat", async (req, res) => {
 
     if (provider === "groq") {
       const completion = await groq.chat.completions.create({
-        model: "llama3-8b-8192",
+        model: "llama3-70b-8192",
         messages: [
           { role: "system", content: "You are Ravan AI owned by Anand. Speak naturally like a human." },
           { role: "user", content: message }
